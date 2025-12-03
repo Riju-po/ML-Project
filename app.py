@@ -1,23 +1,45 @@
-from src.mlproject.logger import logging
-from src.mlproject.exception import CustomException
-from src.mlproject.components.data_ingestion import DataIngestionConfig
-from src.mlproject.components.data_ingestion import DataIngestion
-from src.mlproject.components.data_transformation import DataTransformationConfig, DataTransformation
+from flask import Flask, request, render_template
+import numpy as np
+import pandas as pd
 
-import sys
+from sklearn.preprocessing import StandardScaler
+from src.mlproject.pipelines.prediction_pipeline import CustomData, PredictPipeline
 
+application = Flask(__name__)
 
+app = application
 
+# Route for a home page
 
-if __name__ == "__main__":
-    logging.info("The execution has started")
+@app.route('/')
+def index():
+    return render_template('index.html')
 
-    try:
-        data_ingestion = DataIngestion()
-        train_data_path, test_data_path = data_ingestion.initiate_data_ingestion()
+@app.route('/predictdata', methods=['GET','POST'])
+def predict_datapoint():
+    if request.method == 'GET':
+        return render_template('home.html')
+    else:
+        data = CustomData(
+            gender=request.form.get('gender'),
+            race_ethnicity=request.form.get('ethnicity'),
+            parental_level_of_education=request.form.get('parental_level_of_education'),
+            lunch=request.form.get('lunch'),
+            test_preparation_course=request.form.get('test_preparation_course'),
+            reading_score=float(request.form.get('writing_score')),
+            writing_score=float(request.form.get('reading_score'))
 
-        data_transformation = DataTransformation()
-        data_transformation.initiate_data_transformation(train_data_path, test_data_path)
-    except Exception as e:
-        logging.info("Custom exception")
-        raise CustomException(e, sys)
+        )
+        pred_df=data.get_data_as_data_frame()
+        print(pred_df)
+        print("Before Prediction")
+
+        predict_pipeline=PredictPipeline()
+        print("Mid Prediction")
+        results=predict_pipeline.predict(pred_df)
+        print("after Prediction")
+        return render_template('home.html',results=results[0])
+    
+
+if __name__=="__main__":
+    app.run(host="0.0.0.0", debug = True)        
